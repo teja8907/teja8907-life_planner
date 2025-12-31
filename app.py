@@ -53,13 +53,28 @@ for week in data["weeks"].values():
 # ==================================================
 # ✅ EXPENSES
 # ==================================================
-expenses_df = pd.DataFrame(data["expenses"])
+# ==================================================
+# ✅ EXPENSES (100% SAFE)
+# ==================================================
+expenses_df = pd.DataFrame(data.get("expenses", []))
+
+# Ensure columns always exist
 if expenses_df.empty:
     expenses_df = pd.DataFrame(columns=["amount", "category", "date"])
-else:
-    expenses_df["date"] = pd.to_datetime(expenses_df["date"], errors="coerce")
 
-total_expenses = expenses_df["amount"].sum()
+# 🔒 FORCE datetime conversion (always)
+expenses_df["date"] = pd.to_datetime(
+    expenses_df.get("date"),
+    errors="coerce"
+)
+
+# Display-only formatted date
+expenses_df["date_display"] = expenses_df["date"].dt.strftime("%d-%m-%Y")
+
+total_expenses = expenses_df["amount"].sum() if not expenses_df.empty else 0
+
+
+
 
 # ==================================================
 # ✅ SAVINGS (AUTO-CALCULATED)
@@ -79,9 +94,10 @@ if not savings_df.empty:
     latest_budget = latest["budget"]
 
     month_exp = expenses_df[
-        (expenses_df["date"].dt.strftime("%B") == sel_month) &
-        (expenses_df["date"].dt.year == sel_year)
-    ]
+    (expenses_df["date"].notna()) &
+    (expenses_df["date"].dt.month_name() == sel_month) &
+    (expenses_df["date"].dt.year == sel_year)
+]
 
     actual_spent = month_exp["amount"].sum()
     saved_amount = latest_budget - actual_spent
